@@ -1,9 +1,9 @@
 from typing import *
+import base64
 
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, Form, Body, Header
-from fastapi.requests import Request
-from fastapi.responses import Response, FileResponse, JSONResponse
+from fastapi import FastAPI, UploadFile, File, Header
+from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from blender_renderer.renderer import Renderer
@@ -108,6 +108,19 @@ class Server:
                 filename='render.png',
                 media_type='image/png',
             )
+
+        @self.app.post(path='/unpack')
+        async def unpack(
+                api_key: str = Header(default=''),
+                scene_file: UploadFile = File(),
+        ):
+            await self.authorize(api_key)
+            textures = self.renderer.unpack(scene_file.file.read())
+            b64_textures = {}
+            for texture_name in list(textures.keys()):
+                b64_textures[texture_name] = base64.b64encode(textures[texture_name]).decode('utf8')
+                del textures[texture_name]
+            return JSONResponse(content={'msg': 'success', 'textures': b64_textures})
 
     def run(self):
         uvicorn.run(self.app)

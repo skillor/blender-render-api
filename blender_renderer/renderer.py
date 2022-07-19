@@ -1,7 +1,7 @@
 import os
 import uuid
 import subprocess
-from typing import Dict
+from typing import Dict, List
 
 from .cleaner import rm_dir
 
@@ -19,13 +19,16 @@ class Renderer:
         with open(os.path.join(scripts_dir, 'render.py'), 'r', encoding='utf8') as f:
             self.render_template = f.read()
 
+        with open(os.path.join(scripts_dir, 'unpack.py'), 'r', encoding='utf8') as f:
+            self.unpack_template = f.read()
+
     @staticmethod
-    def _prepare_template(template: str, replaces: Dict[str, str]):
+    def _prepare_template(template: str, replaces: Dict[str, str]) -> str:
         for key, value in replaces.items():
             template = template.replace(key, repr(str(value))[1:-1])
         return template
 
-    def get_texture_names(self, scene_bytes: bytes):
+    def get_texture_names(self, scene_bytes: bytes) -> List[str]:
         work_id = uuid.uuid4().hex
 
         working_dir = os.path.join(self.tmp_directory, work_id)
@@ -58,21 +61,21 @@ class Renderer:
                                 stderr=subprocess.DEVNULL,
                                 )
 
-        if result.returncode == 0:
-            with open(image_names_file_path, 'r', encoding='utf8') as f:
-                texture_names = f.read().splitlines()
+        if result.returncode != 0:
+            rm_dir(working_dir)
+            raise Exception('blender failed')
+
+        with open(image_names_file_path, 'r', encoding='utf8') as f:
+            texture_names = f.read().splitlines()
 
         rm_dir(working_dir)
-
-        if result.returncode != 0:
-            raise Exception('blender failed')
 
         return texture_names
 
     def render(self,
                scene_bytes: bytes,
                textures: Dict[str, bytes] = None,
-               ):
+               ) -> bytes:
         if textures is None:
             textures = {}
 
@@ -113,13 +116,61 @@ class Renderer:
                                 stderr=subprocess.DEVNULL,
                                 )
 
-        if result.returncode == 0:
-            with open(render_file_path, 'rb') as f:
-                render_bytes = f.read()
+        if result.returncode != 0:
+            rm_dir(working_dir)
+            raise Exception('blender failed')
+
+        with open(render_file_path, 'rb') as f:
+            render_bytes = f.read()
 
         rm_dir(working_dir)
 
+        return render_bytes
+
+    def unpack(self,
+               scene_bytes: bytes,
+               ) -> Dict[str, bytes]:
+        work_id = uuid.uuid4().hex
+
+        working_dir = os.path.join(self.tmp_directory, work_id)
+
+        texture_dir = os.path.join(working_dir, 'textures')
+
+        script = self._prepare_template(self.unpack_template, {
+            '{$TEXTURE_DIRECTORY}': texture_dir,
+        })
+
+        script_file_path = os.path.join(working_dir, 'script.py')
+
+        os.makedirs(os.path.dirname(script_file_path), exist_ok=True)
+
+        with open(script_file_path, 'w', encoding='utf8') as f:
+            f.write(script)
+
+        scene_file_path = os.path.join(working_dir, 'scene.blend')
+
+        with open(scene_file_path, 'wb') as f:
+            f.write(scene_bytes)
+
+        command = [self.blender_path, '-b', scene_file_path, '--background', '--python', script_file_path]
+
+        result = subprocess.run(command,
+                                shell=False,
+                                cwd=working_dir,
+                                env=dict(os.environ),
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                                )
+
         if result.returncode != 0:
+            rm_dir(working_dir)
             raise Exception('blender failed')
 
-        return render_bytes
+        texture_files = {}
+        for texture_name in os.listdir(texture_dir):
+            with open(os.path.join(texture_dir, texture_name), 'rb') as f:
+                texture_files[texture_name] = f.read()
+
+        rm_dir(working_dir)
+
+        return texture_files
