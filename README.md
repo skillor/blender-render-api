@@ -1,4 +1,4 @@
-# Telegraf Build Api
+# Blender Renderer Python
 
 ### Docs
 
@@ -11,12 +11,6 @@ All settings can be overwritten with environment variables with the same name.
 ### Setup in Unix
 
 > Install Blender
-
-> Install requirements
-
-```bash
-pip3 install -r requirements.txt
-```
 
 > Install API requirements
 
