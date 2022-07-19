@@ -10,7 +10,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(name='Blender Renderer',
       packages=['blender_renderer'],
-      version='0.4',
+      version='0.5',
       description='Render blender scenes',
       author='skillor',
       author_email='skillor@gmx.net',
