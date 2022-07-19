@@ -58,13 +58,14 @@ class Renderer:
                                 stderr=subprocess.DEVNULL,
                                 )
 
-        if result.returncode != 0:
-            raise Exception('blender failed')
-
-        with open(image_names_file_path, 'r', encoding='utf8') as f:
-            texture_names = f.read().splitlines()
+        if result.returncode == 0:
+            with open(image_names_file_path, 'r', encoding='utf8') as f:
+                texture_names = f.read().splitlines()
 
         rm_dir(working_dir)
+
+        if result.returncode != 0:
+            raise Exception('blender failed')
 
         return texture_names
 
@@ -112,12 +113,13 @@ class Renderer:
                                 stderr=subprocess.DEVNULL,
                                 )
 
-        if result.returncode != 0:
-            raise Exception('blender failed')
-
-        with open(render_file_path, 'rb') as f:
-            render_bytes = f.read()
+        if result.returncode == 0:
+            with open(render_file_path, 'rb') as f:
+                render_bytes = f.read()
 
         rm_dir(working_dir)
+
+        if result.returncode != 0:
+            raise Exception('blender failed')
 
         return render_bytes
