@@ -131,7 +131,7 @@ def create_server(environment, settings=None, example_settings=None):
             return settings[key]
         return example_settings[key]
 
-    renderer = Renderer(get_setting('BLENDER_PATH'), get_setting('TMP_DIRECTORY'))
+    renderer = Renderer(get_setting('BLENDER_BIN_PATH'), get_setting('TMP_DIRECTORY'))
 
     return Server(
         renderer=renderer,
