@@ -92,8 +92,6 @@ class Server:
                 api_key: str = Header(default=''),
                 scene_file: UploadFile = File(),
                 texture_files: List[UploadFile] = None,
-                resolution_x: int = Body(default=1920),
-                resolution_y: int = Body(default=1080),
         ):
             await self.authorize(api_key)
             if texture_files is None:
@@ -104,8 +102,6 @@ class Server:
             img_bytes = self.renderer.render(
                 scene_file.file.read(),
                 textures=texture_files_map,
-                resolution_x=resolution_x,
-                resolution_y=resolution_y,
             )
             return BytesFileResponse(
                 img_bytes,

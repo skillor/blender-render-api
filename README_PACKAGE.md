@@ -25,7 +25,5 @@ texture_files_map = {
 img_bytes = renderer.render(
     scene_bytes,
     textures=texture_files_map,
-    resolution_x=1920,
-    resolution_y=1080,
 )
 ```

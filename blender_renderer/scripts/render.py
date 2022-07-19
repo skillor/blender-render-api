@@ -1,8 +1,6 @@
 import bpy
 import os
 
-bpy.context.scene.render.resolution_x = int('{$RESOLUTION_X}')
-bpy.context.scene.render.resolution_y = int('{$RESOLUTION_Y}')
 bpy.context.scene.render.film_transparent = True
 bpy.context.scene.render.image_settings.color_mode = 'RGBA'
 bpy.context.scene.render.image_settings.file_format = 'PNG'

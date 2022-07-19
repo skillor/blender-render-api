@@ -71,8 +71,6 @@ class Renderer:
     def render(self,
                scene_bytes: bytes,
                textures: Dict[str, bytes] = None,
-               resolution_x: int = 1920,
-               resolution_y: int = 1080,
                ):
         if textures is None:
             textures = {}
@@ -84,8 +82,6 @@ class Renderer:
         render_file_path = os.path.join(working_dir, 'render.png')
 
         script = self._prepare_template(self.render_template, {
-            '{$RESOLUTION_X}': int(resolution_x),
-            '{$RESOLUTION_Y}': int(resolution_y),
             '{$TMP_DIRECTORY}': working_dir,
             '{$OUTPUT_FILE}': render_file_path,
         })
