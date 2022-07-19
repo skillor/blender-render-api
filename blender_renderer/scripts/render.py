@@ -15,8 +15,5 @@ for ob in bpy.data.objects:
                             bpy.data.images[str(x.image.name)].filepath = os.path.join('{$TMP_DIRECTORY}',
                                                                                        str(x.image.name))
 
-bpy.context.scene.render.engine = 'BLENDER_EEVEE'
-for scene in bpy.data.scenes:
-    scene.render.engine = 'BLENDER_EEVEE'
 bpy.context.scene.render.filepath = '{$OUTPUT_FILE}'
 bpy.ops.render.render(write_still=True)
