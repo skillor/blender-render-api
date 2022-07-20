@@ -184,45 +184,24 @@ def blender_version():
     return ".".join([str(i) for i in bpy.app.version])
 
 
-def apply_render_settings(scene, settings):
-    if 'settings' not in settings:
-        return
-    render_settings = settings['settings']
-    for settings_key in settings['settings'].keys():
-        if settings_key in RENDER_SETTINGS_SAVE_WHITELIST:
-            attribute = scene
-            settings_key_split = settings_key.split('.')
-            for attribute_part in settings_key_split[:-1]:
-                if hasattr(attribute, attribute_part):
-                    attribute = getattr(attribute, attribute_part)
-            last_part = settings_key_split[-1]
-            last_attribute = getattr(attribute, last_part)
-            setting_value = render_settings[settings_key]
-            if isinstance(last_attribute, (bool, int, float, str, dict, list)) \
-                    and type(last_attribute) is type(setting_value):
-                setattr(attribute, last_part, setting_value)
+def dump_render_settings(scene):
+    settings = {}
+    for settings_key in RENDER_SETTINGS_SAVE_WHITELIST:
+        attribute = scene
+        for attribute_part in settings_key.split('.'):
+            if hasattr(attribute, attribute_part):
+                attribute = getattr(attribute, attribute_part)
+        if isinstance(attribute, (bool, int, float, str, dict, list)):
+            settings[settings_key] = attribute
+
+    return {
+        'settings': settings,
+        'blender_version': blender_version(),
+    }
 
 
-for ob in bpy.data.objects:
-    if ob.type == "MESH":
-        for mat_slot in ob.material_slots:
-            if mat_slot.material:
-                if mat_slot.material.node_tree:
-                    for x in mat_slot.material.node_tree.nodes:
-                        if x.type == 'TEX_IMAGE':
-                            image_name = str(x.image.name)
-                            file_path = os.path.join('{$TMP_DIRECTORY}', image_name)
-                            if os.path.isfile(file_path):
-                                image = bpy.data.images[image_name]
-                                image.filepath = file_path
-                                if image.packed_file is not None:
-                                    image.unpack()
-
-try:
-    with open('{$RENDER_SETTINGS_FILE}', 'r', encoding='utf8') as f:
-        apply_render_settings(bpy.context.scene, json.loads(f.read()))
-except Exception as e:
-    print(e)
-
-bpy.context.scene.render.filepath = '{$OUTPUT_FILE}'
-bpy.ops.render.render(write_still=True)
+output_file = '{$OUTPUT_FILE}'
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
+render_settings = dump_render_settings(bpy.context.scene)
+with open(output_file, 'w', encoding='utf8') as file:
+    json.dump(render_settings, file)

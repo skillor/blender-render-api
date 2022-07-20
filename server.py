@@ -2,7 +2,7 @@ from typing import *
 import base64
 
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, Header
+from fastapi import FastAPI, UploadFile, File, Header, Form
 from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -92,6 +92,7 @@ class Server:
                 api_key: str = Header(default=''),
                 scene_file: UploadFile = File(),
                 texture_files: List[UploadFile] = None,
+                render_settings: str = Form(default=None),
         ):
             await self.authorize(api_key)
             if texture_files is None:
@@ -102,6 +103,7 @@ class Server:
             img_bytes = self.renderer.render(
                 scene_file.file.read(),
                 textures=texture_files_map,
+                render_settings_string=render_settings,
             )
             return BytesFileResponse(
                 img_bytes,
@@ -121,6 +123,15 @@ class Server:
                 b64_textures[texture_name] = base64.b64encode(textures[texture_name]).decode('utf8')
                 del textures[texture_name]
             return JSONResponse(content={'msg': 'success', 'textures': b64_textures})
+
+        @self.app.post(path='/get-render-settings')
+        async def get_render_settings(
+                api_key: str = Header(default=''),
+                scene_file: UploadFile = File(),
+        ):
+            await self.authorize(api_key)
+            render_settings = self.renderer.get_render_settings(scene_file.file.read())
+            return JSONResponse(content=render_settings)
 
     def run(self):
         uvicorn.run(self.app)

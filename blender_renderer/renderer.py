@@ -1,7 +1,8 @@
+import json
 import os
 import uuid
 import subprocess
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from .cleaner import rm_dir
 
@@ -15,6 +16,9 @@ class Renderer:
 
         with open(os.path.join(scripts_dir, 'get_texture_names.py'), 'r', encoding='utf8') as f:
             self.get_texture_names_template = f.read()
+
+        with open(os.path.join(scripts_dir, 'get_render_settings.py'), 'r', encoding='utf8') as f:
+            self.get_render_settings_template = f.read()
 
         with open(os.path.join(scripts_dir, 'render.py'), 'r', encoding='utf8') as f:
             self.render_template = f.read()
@@ -72,22 +76,15 @@ class Renderer:
 
         return texture_names
 
-    def render(self,
-               scene_bytes: bytes,
-               textures: Dict[str, bytes] = None,
-               ) -> bytes:
-        if textures is None:
-            textures = {}
-
+    def get_render_settings(self, scene_bytes: bytes) -> List[str]:
         work_id = uuid.uuid4().hex
 
         working_dir = os.path.join(self.tmp_directory, work_id)
 
-        render_file_path = os.path.join(working_dir, 'render.png')
+        render_settings_file_path = os.path.join(working_dir, 'settings.json')
 
-        script = self._prepare_template(self.render_template, {
-            '{$TMP_DIRECTORY}': working_dir,
-            '{$OUTPUT_FILE}': render_file_path,
+        script = self._prepare_template(self.get_render_settings_template, {
+            '{$OUTPUT_FILE}': render_settings_file_path
         })
 
         script_file_path = os.path.join(working_dir, 'script.py')
@@ -96,6 +93,72 @@ class Renderer:
 
         with open(script_file_path, 'w', encoding='utf8') as f:
             f.write(script)
+
+        scene_file_path = os.path.join(working_dir, 'scene.blend')
+
+        with open(scene_file_path, 'wb') as f:
+            f.write(scene_bytes)
+
+        command = [self.blender_path, '-b', scene_file_path, '--background', '--python', script_file_path]
+
+        result = subprocess.run(command,
+                                shell=False,
+                                cwd=working_dir,
+                                env=dict(os.environ),
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                                )
+
+        if result.returncode != 0:
+            rm_dir(working_dir)
+            raise Exception('blender failed')
+
+        with open(render_settings_file_path, 'r', encoding='utf8') as f:
+            render_settings = json.loads(f.read())
+
+        rm_dir(working_dir)
+
+        return render_settings
+
+    def render(self,
+               scene_bytes: bytes,
+               textures: Dict[str, bytes] = None,
+               render_settings: Dict[str, Any] = None,
+               render_settings_string: str = None,
+               render_settings_bytes: bytes = b'',
+               ) -> bytes:
+        if textures is None:
+            textures = {}
+
+        if render_settings is not None:
+            render_settings_string = json.dumps(render_settings)
+
+        if render_settings_string is not None:
+            render_settings_bytes = render_settings_string.encode('utf8')
+
+        work_id = uuid.uuid4().hex
+
+        working_dir = os.path.join(self.tmp_directory, work_id)
+
+        render_file_path = os.path.join(working_dir, 'render.png')
+
+        render_settings_file_path = os.path.join(working_dir, 'settings.json')
+
+        script = self._prepare_template(self.render_template, {
+            '{$TMP_DIRECTORY}': working_dir,
+            '{$OUTPUT_FILE}': render_file_path,
+            '{$RENDER_SETTINGS_FILE}': render_settings_file_path,
+        })
+
+        script_file_path = os.path.join(working_dir, 'script.py')
+
+        os.makedirs(os.path.dirname(script_file_path), exist_ok=True)
+
+        with open(script_file_path, 'w', encoding='utf8') as f:
+            f.write(script)
+
+        with open(render_settings_file_path, 'wb') as f:
+            f.write(render_settings_bytes)
 
         scene_file_path = os.path.join(working_dir, 'scene.blend')
 
