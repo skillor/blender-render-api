@@ -25,5 +25,11 @@ texture_files_map = {
 img_bytes = renderer.render(
     scene_bytes,
     textures=texture_files_map,
+    render_settings={
+        "settings": {
+            "cycles.use_denoising": True,
+            "render.engine": "CYCLES",
+        },
+    },
 )
 ```
