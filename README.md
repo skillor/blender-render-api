@@ -1,5 +1,7 @@
 # Blender Renderer Python
 
+Readme for the PyPi Package is here: [README_PACKAGE.md](/README_PACKAGE.md)
+
 ### Docs
 
 API-Documentation can be found here: https://skillor.github.io/blender-render-api/
