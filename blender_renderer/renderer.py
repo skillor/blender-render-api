@@ -32,6 +32,15 @@ class Renderer:
             template = template.replace(key, repr(str(value))[1:-1])
         return template
 
+    def get_blender_command(self, scene_file_path, script_file_path):
+        return [
+            self.blender_path,
+            scene_file_path,
+            '--background',
+            '--python', script_file_path,
+            '--disable-autoexec',
+        ]
+
     def get_texture_names(self, scene_bytes: bytes) -> List[str]:
         work_id = uuid.uuid4().hex
 
@@ -55,7 +64,7 @@ class Renderer:
         with open(scene_file_path, 'wb') as f:
             f.write(scene_bytes)
 
-        command = [self.blender_path, '-b', scene_file_path, '--background', '--python', script_file_path]
+        command = self.get_blender_command(scene_file_path, script_file_path)
 
         result = subprocess.run(command,
                                 shell=False,
@@ -99,7 +108,7 @@ class Renderer:
         with open(scene_file_path, 'wb') as f:
             f.write(scene_bytes)
 
-        command = [self.blender_path, '-b', scene_file_path, '--background', '--python', script_file_path]
+        command = self.get_blender_command(scene_file_path, script_file_path)
 
         result = subprocess.run(command,
                                 shell=False,
@@ -169,7 +178,7 @@ class Renderer:
             with open(os.path.join(working_dir, texture_name), 'wb') as f:
                 f.write(image_bytes)
 
-        command = [self.blender_path, '-b', scene_file_path, '--background', '--python', script_file_path]
+        command = self.get_blender_command(scene_file_path, script_file_path)
 
         result = subprocess.run(command,
                                 shell=False,
@@ -215,7 +224,7 @@ class Renderer:
         with open(scene_file_path, 'wb') as f:
             f.write(scene_bytes)
 
-        command = [self.blender_path, '-b', scene_file_path, '--background', '--python', script_file_path]
+        command = self.get_blender_command(scene_file_path, script_file_path)
 
         result = subprocess.run(command,
                                 shell=False,
