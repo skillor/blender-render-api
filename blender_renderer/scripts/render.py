@@ -164,25 +164,30 @@ RENDER_SETTINGS_SAVE_WHITELIST = [
 def blender_version():
     return ".".join([str(i) for i in bpy.app.version])
 
+def apply_render_setting(scene, settings_key, settings):
+    if settings_key in RENDER_SETTINGS_SAVE_WHITELIST:
+        attribute = scene
+        settings_key_split = settings_key.split('.')
+        for attribute_part in settings_key_split[:-1]:
+            if hasattr(attribute, attribute_part):
+                attribute = getattr(attribute, attribute_part)
+        last_part = settings_key_split[-1]
+        last_attribute = getattr(attribute, last_part)
+        setting_value = render_settings[settings_key]
+        if isinstance(last_attribute, (bool, int, float, str, dict, list)) \
+                and type(last_attribute) is type(setting_value):
+            setattr(attribute, last_part, setting_value)
+
 
 def apply_render_settings(scene, settings):
     if 'settings' not in settings:
         return
     render_settings = settings['settings']
     for settings_key in settings['settings'].keys():
-        if settings_key in RENDER_SETTINGS_SAVE_WHITELIST:
-            attribute = scene
-            settings_key_split = settings_key.split('.')
-            for attribute_part in settings_key_split[:-1]:
-                if hasattr(attribute, attribute_part):
-                    attribute = getattr(attribute, attribute_part)
-            last_part = settings_key_split[-1]
-            last_attribute = getattr(attribute, last_part)
-            setting_value = render_settings[settings_key]
-            if isinstance(last_attribute, (bool, int, float, str, dict, list)) \
-                    and type(last_attribute) is type(setting_value):
-                setattr(attribute, last_part, setting_value)
-
+        try:
+            apply_render_setting(scene, settings_key, settings)
+        except Exception as e:
+            print(e)
 
 for ob in bpy.data.objects:
     if ob.type == "MESH":
@@ -199,11 +204,8 @@ for ob in bpy.data.objects:
                                 if image.packed_file is not None:
                                     image.unpack()
 
-try:
-    with open('{$RENDER_SETTINGS_FILE}', 'r', encoding='utf8') as f:
-        apply_render_settings(bpy.context.scene, json.loads(f.read()))
-except Exception as e:
-    print(e)
+with open('{$RENDER_SETTINGS_FILE}', 'r', encoding='utf8') as f:
+    apply_render_settings(bpy.context.scene, json.loads(f.read()))
 
 bpy.context.scene.render.filepath = '{$OUTPUT_FILE}'
 bpy.ops.render.render(write_still=True)
