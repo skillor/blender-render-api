@@ -164,7 +164,7 @@ RENDER_SETTINGS_SAVE_WHITELIST = [
 def blender_version():
     return ".".join([str(i) for i in bpy.app.version])
 
-def apply_render_setting(scene, settings_key, settings):
+def apply_render_setting(scene, settings_key, render_settings):
     if settings_key in RENDER_SETTINGS_SAVE_WHITELIST:
         attribute = scene
         settings_key_split = settings_key.split('.')
@@ -183,9 +183,9 @@ def apply_render_settings(scene, settings):
     if 'settings' not in settings:
         return
     render_settings = settings['settings']
-    for settings_key in settings['settings'].keys():
+    for settings_key in render_settings.keys():
         try:
-            apply_render_setting(scene, settings_key, settings)
+            apply_render_setting(scene, settings_key, render_settings)
         except Exception as e:
             print(e)
 
